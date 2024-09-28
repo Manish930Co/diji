@@ -73,8 +73,8 @@ function initMap() {
             map: map,
             title: area.name,
             icon: {
-                url: "icon.png",
-                scaledSize: new google.maps.Size(30, 30),
+                url: area.name === "Indiranagar" ? "truck-icon.png" : "icon.png",
+                scaledSize: new google.maps.Size(area.name === "Indiranagar" ? 40 : 30, area.name === "Indiranagar" ? 40 : 30),
             },
         });
 
@@ -82,6 +82,9 @@ function initMap() {
             selectLocation(area);
         });
     });
+
+    // Add Indiranagar to selected locations by default
+    selectLocation(nearbyAreas.find(area => area.name === "Indiranagar"));
 }
 
 function selectLocation(area) {
@@ -97,7 +100,7 @@ function selectLocation(area) {
 }
 
 function resetLocations() {
-    selectedLocations = [];
+    selectedLocations = [nearbyAreas.find(area => area.name === "Indiranagar")];
     document.getElementById("findPathBtn").disabled = true;
     directionsRenderer.set('directions', null);
     alert("Locations reset. Please select new locations for the route.");
@@ -105,7 +108,7 @@ function resetLocations() {
 
 async function findPath() {
     if (selectedLocations.length < 2) {
-        alert("Please select at least two locations.");
+        alert("Please select at least one destination besides Indiranagar.");
         return;
     }
 
@@ -138,20 +141,22 @@ async function findShortestPath(locations) {
     const n = locations.length;
     const distanceMatrix = await getDistanceMatrix(locations);
     
-    // Generate all possible permutations
-    const permutations = getPermutations(Array.from({length: n}, (_, i) => i));
+    // Ensure Indiranagar is the start and end point
+    const indiranagarIndex = locations.findIndex(loc => loc.name === "Indiranagar");
+    const permutations = getPermutations(Array.from({length: n - 1}, (_, i) => i === indiranagarIndex ? n - 1 : i));
     
     let shortestDistance = Infinity;
     let shortestPath = [];
 
     for (let perm of permutations) {
         let distance = 0;
-        for (let i = 0; i < n - 1; i++) {
-            distance += distanceMatrix[perm[i]][perm[i+1]];
+        let fullPath = [indiranagarIndex, ...perm, indiranagarIndex];
+        for (let i = 0; i < fullPath.length - 1; i++) {
+            distance += distanceMatrix[fullPath[i]][fullPath[i+1]];
         }
         if (distance < shortestDistance) {
             shortestDistance = distance;
-            shortestPath = perm;
+            shortestPath = fullPath;
         }
     }
 
